@@ -1,6 +1,8 @@
 from stable_baselines3 import PPO
 from main import GuitarHeroEnv
 import os
+#para dejarlo toda la noche, importamos callbacks, que hacen checkpoints cada tantos pasos dados
+from stable_baselines3.common.callbacks import CheckpointCallback
 
 # Creamos el entorno
 env = GuitarHeroEnv()
@@ -13,10 +15,17 @@ env.reset()
 # modelo para seguir entrenando la IA creada con el otro modelo
 model = PPO.load("IA_guitarrista", env, verbose=1, tensorboard_log="./ppo_guitar_hero_logs/")
 
+# Guardamos una copia cada 500,000 pasos 
+checkpoint_callback = CheckpointCallback(
+    save_freq=2000000, 
+    save_path='./logs_ia/', 
+    name_prefix='ia_nocturna'
+)
+
 print("Empezando el entrenamiento")
 
 # total_timesteps: Cuántos "frames" va a jugar para practicar
-model.learn(total_timesteps=10000)
+model.learn(total_timesteps=60000000, callback=checkpoint_callback)
 
 print("Entrenamiento terminado.")
 
