@@ -63,6 +63,36 @@ class GuitarHeroEnv(gym.Env):
         info = {}
         return self.state, reward, terminated, truncated, info
 
-env = GuitarHeroEnv()
-reset = env.reset()
-print(reset)
+if __name__ == "__main__":
+    # 1. Iniciamos el juego
+    env = GuitarHeroEnv()
+    env.reset()
+
+    print("Presiona 'q' en la ventana para salir...")
+
+    while True:
+        # Por ahora la IA elige acciones al azar para probar (sample seria lo aleatorio)
+        action = env.action_space.sample() 
+        
+        # Damos un paso en el juego
+        state, reward, terminated, truncated, info = env.step(action)
+        
+        # --- VISUALIZACIÓN ---
+        
+        # 1. Convertir matriz a imagen:
+        # Multiplicamos por 255. Así: 0 -> 0 (Negro), 1 -> 255 (Blanco)
+        img = (state * 255).astype(np.uint8)
+        
+        # 2. Agrandar la imagen (Zoom):
+        # La estiramos a 200x500 pixeles. 
+        # INTER_NEAREST es clave: mantiene los bordes duros (cuadrados)
+        img_grande = cv2.resize(img, (200, 500), interpolation=cv2.INTER_NEAREST)
+        
+        # 3. Mostrar ventana
+        cv2.imshow("Vista de la IA", img_grande)
+        
+        # Esperar 50ms entre cuadros. Si aprietas 'q', cierra.
+        if cv2.waitKey(50) & 0xFF == ord('q'):
+            break
+
+    cv2.destroyAllWindows()
