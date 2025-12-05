@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 # PPO es un algoritmo de aprendizaje por refuerzo
 from stable_baselines3 import PPO
+from torch import initial_seed
 
 class GuitarHeroEnv(gym.Env):
     def __init__(self):
@@ -15,6 +16,8 @@ class GuitarHeroEnv(gym.Env):
         self.action_space = spaces.Discrete(6)
         # Definimos el espacio de observacion, 20x5(filas, columnas), cada celda puede ser 0 o 1
         self.observation_space = spaces.Box(low=0, high=2, shape=(20, 5), dtype=np.uint8)
+        # indicamos la cantidad maxima de pasos
+        self.max_steps = 2000
 
     def reset(self, seed=None, options=None):
     # Esto es necesario para gestionar la aleatoriedad correctamente
@@ -22,6 +25,9 @@ class GuitarHeroEnv(gym.Env):
     
     # Creamos la matriz de 20x5 llena de ceros
         self.state = np.zeros((20, 5), dtype=int)
+
+    # ponemos que empieza del paso 0
+        self.initial_steps = 0
     
     # Devolvemos el estado inicial y un diccionario vacío (info)
         return self.state, {}
@@ -59,10 +65,18 @@ class GuitarHeroEnv(gym.Env):
         for col in range(5):
             if np.random.random() < dificultad:
                 self.state[0, col] = 1
+        
+        # agregamos la suma de los pasos
+        self.initial_steps += 1
+        if self.initial_steps >= self.max_steps:
+            truncated = True
+        else:
+            truncated = False      
         # devolvemos el diccionario vacio , para evitar errores
         info = {}
         return self.state, reward, terminated, truncated, info
 
+#testing
 if __name__ == "__main__":
     # 1. Iniciamos el juego
     env = GuitarHeroEnv()
