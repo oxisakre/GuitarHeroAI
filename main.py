@@ -12,8 +12,8 @@ from torch import initial_seed
 
 class GuitarHeroEnv(gym.Env):
     def __init__(self):
-        # Definimos la cantidad de acciones que puede realizar el agente
-        self.action_space = spaces.Discrete(6)
+        # Definimos la cantidad de acciones que puede realizar el agente #### UPDATE #### lo cambie por multibinary para tocar varias teclas juntas, esto devuelve una lista
+        self.action_space = spaces.MultiBinary(5)
         # Definimos el espacio de observacion, 20x5(filas, columnas), cada celda puede ser 0 o 1
         self.observation_space = spaces.Box(low=0, high=2, shape=(20, 5), dtype=np.uint8)
         # indicamos la cantidad maxima de pasos
@@ -37,19 +37,27 @@ class GuitarHeroEnv(gym.Env):
         reward = 0
         terminated = False
         truncated = False
+        # modifique el pensamiento para poder tocar mas de una tecla al mismo tiempo, ya que ahora es una lista
+        for col in range(5):
+            if action[col] > 0:
+                if self.state[19, col] > 0:
+                    self.state[19, col] = 0
+                    reward += 1
+                else:
+                    reward -= 1
 
         # la IA intenta tocar
-        if action > 0:
-            columna = action - 1
-            if self.state[19, columna] > 0:
-                reward += 1 # Recompensa por tocar una nota 
-                self.state[19, columna] = 0 # La nota que se toca, se elimina de la matriz
-            else:
-                reward -= 1 # Castigo por tocar el aire
+        #if action > 0:
+        #    columna = action - 1
+        #    if self.state[19, columna] > 0:
+        #       reward += 1 # Recompensa por tocar una nota 
+        #        self.state[19, columna] = 0 # La nota que se toca, se elimina de la matriz
+        #    else:
+        #        reward -= 1 # Castigo por tocar el aire
         # Revisar si se nos escapó alguna nota en la última fila (fila 19)
         # Recorremos las 5 columnas
         for col in range(5):
-            if self.state[19, col] == 1:
+            if self.state[19, col] > 0:
                 # si hay una nota en la ultima fila, se resta 5 puntos
                 reward -= 5 
         
