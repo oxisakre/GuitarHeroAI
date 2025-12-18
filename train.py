@@ -13,11 +13,11 @@ env.reset()
 # verbose=1: para que nos diga en la consola como le esta yendo
 # model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./ppo_guitar_hero_logs/")    (modelo para crear una IA de cero)
 # modelo para seguir entrenando la IA creada con el otro modelo
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./ppo_guitar_hero_logs/")
-
+model = PPO.load("IA_guitarristaMultiple", env, verbose=1, tensorboard_log="./ppo_guitar_hero_logs/")
+#model = PPO('MlpPolicy', env, verbose=1, tensorboard_log="./ppo_guitar_hero_logs/")
 # Guardamos una copia cada 500,000 pasos 
 checkpoint_callback = CheckpointCallback(
-    save_freq=2000000, 
+    save_freq=20000, 
     save_path='./logs_ia/', 
     name_prefix='ia_nocturna'
 )
@@ -25,7 +25,7 @@ checkpoint_callback = CheckpointCallback(
 print("Empezando el entrenamiento")
 
 # total_timesteps: Cuántos "frames" va a jugar para practicar
-model.learn(total_timesteps=600000, callback=checkpoint_callback)
+model.learn(total_timesteps=36000000, callback=checkpoint_callback)
 
 print("Entrenamiento terminado.")
 

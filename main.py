@@ -18,6 +18,8 @@ class GuitarHeroEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=2, shape=(20, 5), dtype=np.uint8)
         # indicamos la cantidad maxima de pasos
         self.max_steps = 2000
+        # para saber si hay sostenidos
+        self.sosteniendo_nota = [False] * 5
 
     def reset(self, seed=None, options=None):
     # Esto es necesario para gestionar la aleatoriedad correctamente
@@ -28,6 +30,8 @@ class GuitarHeroEnv(gym.Env):
 
     # ponemos que empieza del paso 0
         self.initial_steps = 0
+    # para saber si hay sostenidos
+        self.sosteniendo_nota = [False] * 5
     
     # Devolvemos el estado inicial y un diccionario vacío (info)
         return self.state, {}
@@ -39,12 +43,34 @@ class GuitarHeroEnv(gym.Env):
         truncated = False
         # modifique el pensamiento para poder tocar mas de una tecla al mismo tiempo, ya que ahora es una lista
         for col in range(5):
-            if action[col] > 0:
-                if self.state[19, col] > 0:
+            # si la accion es la de una nota
+            if action[col] == 1:
+                # si hay una nota en la lista
+                if self.state[19, col] == 1:
+                    reward += 6
+                    self.sosteniendo_nota[col] = True # dejamos recordatorio para poder sostener la nota
                     self.state[19, col] = 0
-                    reward += 1
+
+                # si la nota es un sostenido
+                elif self.state[19, col] == 2:
+                    # verificamos si activo antes la memoria en esa columna
+                    if self.sosteniendo_nota[col] == True:
+                        reward += 2
+                    else:
+                        # si no se activo nada no puede sostener
+                        reward -= 1
+
+                # si toca al azar y le erra o apreta en un sostenido
                 else:
                     reward -= 1
+                    self.sosteniendo_nota[col] = False # y rompe el True , ya que rompe con el sostenido
+
+            # aca es si no toca nada o si suelta el sostenido
+            else: 
+                self.sosteniendo_nota[col] = False
+                
+
+        
 
         # la IA intenta tocar
         #if action > 0:
@@ -68,11 +94,16 @@ class GuitarHeroEnv(gym.Env):
         self.state[0] = 0
 
         # Probabilidad de nota nueva (0.1 = 10% de probabilidad) , si queremos mas dificultad, aumentamos el valor
-        dificultad = 0.1 
+        dificultad = 0.1
+        prob_sostener = 0.9
         
         for col in range(5):
-            if np.random.random() < dificultad:
-                self.state[0, col] = 1
+            if self.state[1, col] > 0: # si hay una nota o una sostenida
+                if np.random.random() < prob_sostener: # si da un valor mas bajo entonces agregamos mas sustain a la nota
+                    self.state[0, col] = 2
+            else:
+                if np.random.random() < dificultad:
+                    self.state[0, col] = 1
         
         # agregamos la suma de los pasos
         self.initial_steps += 1
