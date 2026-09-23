@@ -1,0 +1,76 @@
+{
+  "log": "debug\\20260922_220640\\eventos.jsonl",
+  "frames": 14615,
+  "height": 800,
+  "latency_ms": 30,
+  "seed": 100042,
+  "episodes_per_style": 4,
+  "steps_per_episode": 1000,
+  "limitations": "Memoria reconstruida desde acciones registradas; solicitudes por cuadro, no pulsaciones ni aciertos del juego. Simulaci\u00f3n sin efectos visuales.",
+  "recorded": {
+    "empty_requests": 139,
+    "empty_requests_during_multi_sustains": 127,
+    "head_requests_missed": 8,
+    "held_tail_release_requests": 0
+  },
+  "models": {
+    "IA_guitarristaCanciones.zip": {
+      "replay": {
+        "empty_requests": 129,
+        "empty_requests_during_multi_sustains": 127,
+        "head_requests_missed": 0,
+        "held_tail_release_requests": 0
+      },
+      "matches_recorded_frames": 0.9987683886418064,
+      "simulation": {
+        "song": {
+          "notes_hit": 1071,
+          "notes_missed": 1,
+          "wrong_presses": 6,
+          "sustain_ticks_hit": 917,
+          "sustain_ticks_missed": 0,
+          "sustains_completed": 128,
+          "sustains_broken": 0
+        },
+        "sustain": {
+          "notes_hit": 666,
+          "notes_missed": 12,
+          "wrong_presses": 165,
+          "sustain_ticks_hit": 9366,
+          "sustain_ticks_missed": 108,
+          "sustains_completed": 444,
+          "sustains_broken": 4
+        }
+      }
+    },
+    "IA_guitarristaCanciones_8h.zip": {
+      "replay": {
+        "empty_requests": 33,
+        "empty_requests_during_multi_sustains": 32,
+        "head_requests_missed": 0,
+        "held_tail_release_requests": 0
+      },
+      "matches_recorded_frames": 0.9876838864180636,
+      "simulation": {
+        "song": {
+          "notes_hit": 1071,
+          "notes_missed": 1,
+          "wrong_presses": 4,
+          "sustain_ticks_hit": 917,
+          "sustain_ticks_missed": 0,
+          "sustains_completed": 128,
+          "sustains_broken": 0
+        },
+        "sustain": {
+          "notes_hit": 667,
+          "notes_missed": 11,
+          "wrong_presses": 177,
+          "sustain_ticks_hit": 9356,
+          "sustain_ticks_missed": 118,
+          "sustains_completed": 442,
+          "sustains_broken": 6
+        }
+      }
+    }
+  }
+}

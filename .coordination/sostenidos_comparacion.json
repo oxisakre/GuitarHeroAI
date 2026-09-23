@@ -1,0 +1,76 @@
+{
+  "log": "debug\\20260922_220640\\eventos.jsonl",
+  "frames": 14615,
+  "height": 800,
+  "latency_ms": 30,
+  "seed": 100042,
+  "episodes_per_style": 4,
+  "steps_per_episode": 1000,
+  "limitations": "Memoria reconstruida desde acciones registradas; solicitudes por cuadro, no pulsaciones ni aciertos del juego. Simulaci\u00f3n sin efectos visuales.",
+  "recorded": {
+    "empty_requests": 139,
+    "empty_requests_during_multi_sustains": 127,
+    "head_requests_missed": 8,
+    "held_tail_release_requests": 0
+  },
+  "models": {
+    "IA_guitarristaSostenidos.zip": {
+      "replay": {
+        "empty_requests": 1,
+        "empty_requests_during_multi_sustains": 1,
+        "head_requests_missed": 0,
+        "held_tail_release_requests": 0
+      },
+      "matches_recorded_frames": 0.9898734177215189,
+      "simulation": {
+        "song": {
+          "notes_hit": 1071,
+          "notes_missed": 1,
+          "wrong_presses": 3,
+          "sustain_ticks_hit": 917,
+          "sustain_ticks_missed": 0,
+          "sustains_completed": 128,
+          "sustains_broken": 0
+        },
+        "sustain": {
+          "notes_hit": 665,
+          "notes_missed": 13,
+          "wrong_presses": 239,
+          "sustain_ticks_hit": 9260,
+          "sustain_ticks_missed": 214,
+          "sustains_completed": 438,
+          "sustains_broken": 10
+        }
+      }
+    },
+    "IA_guitarristaSostenidos_mejor.zip": {
+      "replay": {
+        "empty_requests": 13,
+        "empty_requests_during_multi_sustains": 13,
+        "head_requests_missed": 0,
+        "held_tail_release_requests": 0
+      },
+      "matches_recorded_frames": 0.9908313376667807,
+      "simulation": {
+        "song": {
+          "notes_hit": 1070,
+          "notes_missed": 2,
+          "wrong_presses": 14,
+          "sustain_ticks_hit": 909,
+          "sustain_ticks_missed": 8,
+          "sustains_completed": 127,
+          "sustains_broken": 1
+        },
+        "sustain": {
+          "notes_hit": 676,
+          "notes_missed": 2,
+          "wrong_presses": 105,
+          "sustain_ticks_hit": 9457,
+          "sustain_ticks_missed": 17,
+          "sustains_completed": 447,
+          "sustains_broken": 1
+        }
+      }
+    }
+  }
+}

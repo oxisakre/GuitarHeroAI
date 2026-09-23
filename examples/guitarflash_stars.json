@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "image_only": true,
+  "region": {"left": 0, "top": 0, "width": 548, "height": 406},
+  "corners": [[230, 180], [314, 180], [406, 355], [138, 355]],
+  "keys": "asdfg",
+  "detector": {}
+}

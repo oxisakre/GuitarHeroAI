@@ -1,151 +1,222 @@
-# gymnasium es una libreria para crear entornos de aprendizaje por refuerzo
+"""Simulador de cinco carriles compatible con los modelos originales."""
+
 import gymnasium as gym
-# spaces es una libreria para definir el espacio de observacion y acciones
 from gymnasium import spaces
-# numpy es una libreria para manejar matrices
 import numpy as np
-# cv2 es una libreria para manejar imagenes
-import cv2
-# PPO es un algoritmo de aprendizaje por refuerzo
-from stable_baselines3 import PPO
-from torch import initial_seed
+
+NOTE_STYLES = ("song", "dense", "sustain")
+
 
 class GuitarHeroEnv(gym.Env):
-    def __init__(self):
-        # Definimos la cantidad de acciones que puede realizar el agente #### UPDATE #### lo cambie por multibinary para tocar varias teclas juntas, esto devuelve una lista
-        self.action_space = spaces.MultiBinary(5)
-        # Definimos el espacio de observacion, 20x5(filas, columnas), cada celda puede ser 0 o 1
-        self.observation_space = spaces.Box(low=0, high=2, shape=(20, 5), dtype=np.uint8)
-        # indicamos la cantidad maxima de pasos
-        self.max_steps = 2000
-        # para saber si hay sostenidos
-        self.sosteniendo_nota = [False] * 5
+    """Cada acción indica qué teclas mantener durante un paso.
 
-    def reset(self, seed=None, options=None):
-    # Esto es necesario para gestionar la aleatoriedad correctamente
-        super().reset(seed=seed)
-    
-    # Creamos la matriz de 20x5 llena de ceros
-        self.state = np.zeros((20, 5), dtype=int)
+    Por defecto conserva la matriz (20, 5) de los checkpoints originales.
+    include_hold_state=True añade la memoria de notas válidas sostenidas;
+    requiere un modelo nuevo con MultiInputPolicy. No exige un flanco de
+    pulsación para las cabezas: esa regla debe comprobarse en el juego real.
 
-    # ponemos que empieza del paso 0
-        self.initial_steps = 0
-    # para saber si hay sostenidos
-        self.sosteniendo_nota = [False] * 5
-    
-    # Devolvemos el estado inicial y un diccionario vacío (info)
-        return self.state, {}
-    
-    def step(self, action):
-        # Definimos la recompensa
-        reward = 0
-        terminated = False
-        truncated = False
-        # modifique el pensamiento para poder tocar mas de una tecla al mismo tiempo, ya que ahora es una lista
-        for col in range(5):
-            # si la accion es la de una nota
-            if action[col] == 1:
-                # si hay una nota en la lista
-                if self.state[19, col] == 1:
-                    reward += 6
-                    self.sosteniendo_nota[col] = True # dejamos recordatorio para poder sostener la nota
-                    self.state[19, col] = 0
+    note_style="song" imita una canción: cada episodio sortea silencios,
+    tramos más o menos densos, acordes y sostenidos, para que el modelo
+    también aprenda a no tocar cuando la pista está vacía.
+    note_style="dense" es el generador original con el que se entrenó
+    IA_guitarristaMultiple: note_probability de nota nueva por carril y
+    sustain_probability de que la cola continúe. Casi nunca deja la pista vacía.
+    note_style="sustain" mezcla canciones normales con episodios de práctica
+    de acordes sostenidos largos. Conserva silencios, cabezas y recompensas.
+    """
 
-                # si la nota es un sostenido
-                elif self.state[19, col] == 2:
-                    # verificamos si activo antes la memoria en esa columna
-                    if self.sosteniendo_nota[col] == True:
-                        reward += 2
-                    else:
-                        # si no se activo nada no puede sostener
-                        reward -= 1
-
-                # si toca al azar y le erra o apreta en un sostenido
-                else:
-                    reward -= 1
-                    self.sosteniendo_nota[col] = False # y rompe el True , ya que rompe con el sostenido
-
-            # aca es si no toca nada o si suelta el sostenido
-            else: 
-                self.sosteniendo_nota[col] = False
-                
-
-        
-
-        # la IA intenta tocar
-        #if action > 0:
-        #    columna = action - 1
-        #    if self.state[19, columna] > 0:
-        #       reward += 1 # Recompensa por tocar una nota 
-        #        self.state[19, columna] = 0 # La nota que se toca, se elimina de la matriz
-        #    else:
-        #        reward -= 1 # Castigo por tocar el aire
-        # Revisar si se nos escapó alguna nota en la última fila (fila 19)
-        # Recorremos las 5 columnas
-        for col in range(5):
-            if self.state[19, col] > 0:
-                # si hay una nota en la ultima fila, se resta 5 puntos
-                reward -= 5 
-        
-        # usamos np.roll para mover la matriz una fila hacia arriba y borrar la ultima fila
-        self.state = np.roll(self.state, shift=1, axis=0)
-
-        # limpiamos la ultima fila
-        self.state[0] = 0
-
-        # Probabilidad de nota nueva (0.1 = 10% de probabilidad) , si queremos mas dificultad, aumentamos el valor
-        dificultad = 0.1
-        prob_sostener = 0.9
-        
-        for col in range(5):
-            if self.state[1, col] > 0: # si hay una nota o una sostenida
-                if np.random.random() < prob_sostener: # si da un valor mas bajo entonces agregamos mas sustain a la nota
-                    self.state[0, col] = 2
-            else:
-                if np.random.random() < dificultad:
-                    self.state[0, col] = 1
-        
-        # agregamos la suma de los pasos
-        self.initial_steps += 1
-        if self.initial_steps >= self.max_steps:
-            truncated = True
+    def __init__(self, include_hold_state=False, max_steps=2000, note_style="song",
+                 note_probability=None, sustain_probability=None):
+        super().__init__()
+        if max_steps < 1:
+            raise ValueError("max_steps debe ser positivo")
+        if note_style not in NOTE_STYLES:
+            raise ValueError(f"note_style debe ser uno de {NOTE_STYLES}")
+        if note_style != "dense":
+            if note_probability is not None or sustain_probability is not None:
+                raise ValueError("note_probability y sustain_probability solo se usan con note_style='dense'")
         else:
-            truncated = False      
-        # devolvemos el diccionario vacio , para evitar errores
-        info = {}
-        return self.state, reward, terminated, truncated, info
+            note_probability = 0.1 if note_probability is None else note_probability
+            sustain_probability = 0.9 if sustain_probability is None else sustain_probability
+            if not 0 <= note_probability <= 1 or not 0 <= sustain_probability <= 1:
+                raise ValueError("Las probabilidades deben estar entre 0 y 1")
+        self.include_hold_state = include_hold_state
+        self.max_steps = max_steps
+        self.note_style = note_style
+        self.note_probability = note_probability
+        self.sustain_probability = sustain_probability
+        self._reset_song()
+        self.action_space = spaces.MultiBinary(5)
+        board_space = spaces.Box(low=0, high=2, shape=(20, 5), dtype=np.uint8)
+        self.observation_space = (
+            spaces.Dict({"board": board_space, "held": spaces.MultiBinary(5)})
+            if include_hold_state else board_space
+        )
+        self.state = np.zeros((20, 5), dtype=np.uint8)
+        self.sosteniendo_nota = [False] * 5
+        self.initial_steps = 0
+        self.episode_reward = 0.0
+        self.metrics = self._empty_metrics()
 
-#testing
-if __name__ == "__main__":
-    # 1. Iniciamos el juego
+    @staticmethod
+    def _empty_metrics():
+        return dict(notes_hit=0, notes_missed=0, wrong_presses=0,
+                    sustain_ticks_hit=0, sustain_ticks_missed=0,
+                    sustains_completed=0, sustains_broken=0)
+
+    def _observation(self):
+        board = self.state.copy()
+        if self.include_hold_state:
+            return {"board": board,
+                    "held": np.asarray(self.sosteniendo_nota, dtype=np.int8)}
+        return board
+
+    def _info(self):
+        total = self.metrics["notes_hit"] + self.metrics["notes_missed"]
+        return {**self.metrics,
+                "accuracy": self.metrics["notes_hit"] / total if total else 0.0,
+                "steps": self.initial_steps, "episode_reward": self.episode_reward}
+
+    def reset(self, *, seed=None, options=None):
+        super().reset(seed=seed)
+        self.state = np.zeros((20, 5), dtype=np.uint8)
+        self.sosteniendo_nota = [False] * 5
+        self.initial_steps = 0
+        self.episode_reward = 0.0
+        self.metrics = self._empty_metrics()
+        self._reset_song(self.np_random)
+        return self._observation(), self._info()
+
+    def _reset_song(self, rng=None):
+        """Sortea la "canción" del episodio; sin rng deja valores neutros."""
+        self._tail_left = [0] * 5
+        self._playing = False
+        self._density = 0.0
+        # Empieza con una intro en silencio de hasta 40 filas.
+        self._section_left = int(rng.integers(0, 41)) if rng is not None else 0
+        self._sustain_chance = rng.uniform(0.05, 0.5) if rng is not None else 0.0
+        # La mitad de los episodios conserva el repertorio habitual. El resto
+        # expone combinaciones simultáneas y colas que ocupan toda la pantalla,
+        # poco frecuentes con colas independientes de sólo 2-12 filas.
+        self._practice_episode = (self.note_style == "sustain" and rng is not None
+                                  and rng.random() < 0.5)
+        if self._practice_episode:
+            self._sustain_chance = rng.uniform(0.7, 1.0)
+
+    def _generate_dense_row(self):
+        for col in range(5):
+            if self.state[1, col] > 0:
+                if self.np_random.random() < self.sustain_probability:
+                    self.state[0, col] = 2
+            elif self.np_random.random() < self.note_probability:
+                self.state[0, col] = 1
+
+    def _generate_song_row(self):
+        rng = self.np_random
+        row = self.state[0]
+        # Las colas en curso siguen por encima de su cabeza, incluso en silencio.
+        for col in range(5):
+            if self._tail_left[col] > 0:
+                row[col] = 2
+                self._tail_left[col] -= 1
+        if self._section_left <= 0:
+            # Alterna tramos tocando (con su propia densidad) y silencios.
+            self._playing = not self._playing
+            if self._playing:
+                self._section_left = int(rng.integers(30, 251))
+                self._density = rng.uniform(0.05, 0.5)
+            else:
+                self._section_left = int(rng.integers(5, 61))
+        self._section_left -= 1
+        if not self._playing or rng.random() >= self._density:
+            return
+        free = [col for col in range(5) if row[col] == 0]
+        size = min(len(free), int(rng.choice([1, 2, 3, 4], p=[0.1, 0.5, 0.3, 0.1])
+                                 if self._practice_episode else
+                                 rng.choice([1, 2, 3], p=[0.7, 0.22, 0.08])))
+        if size == 0:
+            return
+        chord_length = int(rng.integers(4, 41)) if self._practice_episode else None
+        for col in rng.choice(free, size=size, replace=False):
+            row[col] = 1
+            if rng.random() < self._sustain_chance:
+                self._tail_left[col] = (chord_length if chord_length is not None
+                                        else int(rng.integers(2, 13)))
+
+    def step(self, action):
+        action = np.asarray(action)
+        if action.shape != (5,) or not np.all((action == 0) | (action == 1)):
+            raise ValueError("La acción debe contener cinco valores 0 o 1")
+        reward = 0.0
+        for col in range(5):
+            note = self.state[-1, col]
+            pressed = bool(action[col])
+            if note == 1:
+                if pressed:
+                    reward += 6
+                    self.metrics["notes_hit"] += 1
+                else:
+                    reward -= 5
+                    self.metrics["notes_missed"] += 1
+                self.sosteniendo_nota[col] = pressed
+            elif note == 2:
+                valid_hold = pressed and self.sosteniendo_nota[col]
+                if valid_hold:
+                    # Un sostenido acertado se recompensa una sola vez.
+                    reward += 2
+                    self.metrics["sustain_ticks_hit"] += 1
+                else:
+                    reward -= 5
+                    self.metrics["sustain_ticks_missed"] += 1
+                    if pressed:
+                        reward -= 1
+                        self.metrics["wrong_presses"] += 1
+                self.sosteniendo_nota[col] = bool(valid_hold)
+                if self.state[-2, col] != 2:
+                    key = "sustains_completed" if valid_hold else "sustains_broken"
+                    self.metrics[key] += 1
+            else:
+                if pressed:
+                    reward -= 1
+                    self.metrics["wrong_presses"] += 1
+                self.sosteniendo_nota[col] = False
+
+        # Las notas avanzan hacia la fila de toque, que es la última.
+        self.state = np.roll(self.state, shift=1, axis=0)
+        self.state[0] = 0
+        if self.note_style != "dense":
+            self._generate_song_row()
+        else:
+            self._generate_dense_row()
+
+        self.initial_steps += 1
+        self.episode_reward += reward
+        return (self._observation(), reward, False,
+                self.initial_steps >= self.max_steps, self._info())
+
+
+def main():
+    import cv2
+
     env = GuitarHeroEnv()
     env.reset()
-
     print("Presiona 'q' en la ventana para salir...")
+    try:
+        while True:
+            board, _, terminated, truncated, _ = env.step(env.action_space.sample())
+            image = np.zeros((20, 5, 3), dtype=np.uint8)
+            image[board == 1] = (255, 255, 255)
+            image[board == 2] = (0, 255, 0)
+            image = cv2.resize(image, (200, 500), interpolation=cv2.INTER_NEAREST)
+            cv2.imshow("Vista de la IA", image)
+            if cv2.waitKey(50) & 0xFF == ord("q"):
+                break
+            if terminated or truncated:
+                env.reset()
+    finally:
+        env.close()
+        cv2.destroyAllWindows()
 
-    while True:
-        # Por ahora la IA elige acciones al azar para probar (sample seria lo aleatorio)
-        action = env.action_space.sample() 
-        
-        # Damos un paso en el juego
-        state, reward, terminated, truncated, info = env.step(action)
-        
-        # --- VISUALIZACIÓN ---
-        
-        # 1. Convertir matriz a imagen:
-        # Multiplicamos por 255. Así: 0 -> 0 (Negro), 1 -> 255 (Blanco)
-        img = (state * 255).astype(np.uint8)
-        
-        # 2. Agrandar la imagen (Zoom):
-        # La estiramos a 200x500 pixeles. 
-        # INTER_NEAREST es clave: mantiene los bordes duros (cuadrados)
-        img_grande = cv2.resize(img, (200, 500), interpolation=cv2.INTER_NEAREST)
-        
-        # 3. Mostrar ventana
-        cv2.imshow("Vista de la IA", img_grande)
-        
-        # Esperar 50ms entre cuadros. Si aprietas 'q', cierra.
-        if cv2.waitKey(50) & 0xFF == ord('q'):
-            break
 
-    cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()

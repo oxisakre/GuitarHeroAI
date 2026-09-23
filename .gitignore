@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.test-deps/
+guitarflash_config.json
+captures/
+artifacts/
+logs_ia/
+ppo_guitar_hero_logs/
+models/
+debug/
+*_datos/
